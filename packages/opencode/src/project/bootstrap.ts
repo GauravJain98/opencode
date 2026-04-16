@@ -17,6 +17,7 @@ export const InstanceBootstrap = Effect.gen(function* () {
   Log.Default.info("bootstrapping", { directory: Instance.directory })
   yield* Effect.all(
     [
+      Plugin.Service,
       LSP.Service,
       ShareNext.Service,
       Format.Service,
