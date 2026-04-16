@@ -1,6 +1,7 @@
 import { Layer, ManagedRuntime } from "effect"
 import { attach, memoMap } from "./run-service"
 import * as Observability from "./observability"
+import * as Effect from "effect/Effect"
 
 import { AppFileSystem } from "@opencode-ai/shared/filesystem"
 import { Bus } from "@/bus"
@@ -49,13 +50,28 @@ import { ShareNext } from "@/share"
 import { SessionShare } from "@/share"
 import { Npm } from "@opencode-ai/shared/npm"
 
+const ConfigWithPluginPriority = Layer.effect(
+  Config.Service,
+  Effect.gen(function* () {
+    const config = yield* Config.Service
+    const plugin = yield* Plugin.Service
+
+    return {
+      ...config,
+      get: () => Effect.andThen(plugin.init(), config.get),
+      getGlobal: () => Effect.andThen(plugin.init(), config.getGlobal),
+      getConsoleState: () => Effect.andThen(plugin.init(), config.getConsoleState),
+    }
+  }),
+).pipe(Layer.provide(Layer.merge(Plugin.defaultLayer, Config.defaultLayer)))
+
 export const AppLayer = Layer.mergeAll(
   Npm.defaultLayer,
   AppFileSystem.defaultLayer,
   Bus.defaultLayer,
   Auth.defaultLayer,
   Account.defaultLayer,
-  Config.defaultLayer,
+  ConfigWithPluginPriority,
   Git.defaultLayer,
   Ripgrep.defaultLayer,
   FileTime.defaultLayer,
